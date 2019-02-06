@@ -34,6 +34,7 @@ hcswif_prefix = 'hcswif' + datestr
 #------------------------------------------------------------------------------
 def main():
     parsed_args = parseArgs()
+    #print (parsed_args)
     workflow, outfile = getWorkflow(parsed_args) 
     writeWorkflow(workflow, outfile)
 
@@ -44,30 +45,43 @@ def parseArgs():
     # Add arguments
     parser.add_argument('--mode', nargs=1, dest='mode',
             help='type of workflow (replay or command)')
+
     parser.add_argument('--spectrometer', nargs=1, dest='spectrometer',
             help='spectrometer to analyze (HMS_ALL, SHMS_ALL, HMS_PROD, SHMS_PROD, COIN, HMS_COIN, SHMS_COIN, HMS_SCALER, SHMS_SCALER)')
+
     parser.add_argument('--run', nargs='+', dest='run', 
             help='a list of run numbers and ranges, or a file listing run numbers')
+
     parser.add_argument('--events', nargs=1, dest='events',
             help='number of events to analyze (default=all)')
+
     parser.add_argument('--name', nargs=1, dest='name', 
             help='workflow name')
+
     parser.add_argument('--replay', nargs=1, dest='replay', 
             help='hcana replay script; path relative to hallc_replay')
+
     parser.add_argument('--command', nargs=1, dest='command', 
             help='shell command or script to run; in quotes (command mode only)')
+
     parser.add_argument('--filelist', nargs=1, dest='filelist', 
             help='file contaning list of input files to jget (command mode only)')
+
     parser.add_argument('--project', nargs=1, dest='project', 
             help='name of project')
+
     parser.add_argument('--disk', nargs=1, dest='disk', 
             help='disk space in bytes')
+
     parser.add_argument('--ram', nargs=1, dest='ram', 
             help='ram space in bytes')
+
     parser.add_argument('--cpu', nargs=1, dest='cpu', 
             help='cpu cores')
+
     parser.add_argument('--time', nargs=1, dest='time', 
             help='max run time per job in seconds allowed before killing jobs')
+
     parser.add_argument('--shell', nargs=1, dest='shell', 
             help='shell to use for jobs')
 
@@ -80,8 +94,11 @@ def parseArgs():
 
 #------------------------------------------------------------------------------
 def getWorkflow(parsed_args):
+    #print (parsed_args)
     # Initialize
     workflow = initializeWorkflow(parsed_args)
+    #print (workflow)
+    #print('\n')
     outfile = os.path.join(out_dir, workflow['name'] + '.json')
 
     # Get jobs
@@ -92,11 +109,14 @@ def getWorkflow(parsed_args):
         workflow['jobs'] = getReplayJobs(parsed_args, workflow['name'])
     elif mode == 'command':
         workflow['jobs'] = getCommandJobs(parsed_args, workflow['name'])
+       # print ( workflow['jobs'])
+       # print('\n')
     else:
         raise ValueError('Mode must be replay or command')
 
     # Add project to jobs
     workflow = addCommonJobInfo(workflow, parsed_args)
+    #print (workflow)
 
     return workflow, outfile
 
@@ -107,6 +127,8 @@ def initializeWorkflow(parsed_args):
         workflow['name'] = hcswif_prefix
     else:
         workflow['name'] = parsed_args.name[0]
+       # print (parsed_args.name[0])
+    #print (workflow)
 
     return workflow
 
@@ -209,8 +231,11 @@ def getReplayJobs(parsed_args, wf_name):
 
         # command for job is `/hcswifdir/hcswif.sh REPLAY RUN NUMEVENTS`
         job['command'] = " ".join([batch, replay_script, str(run), str(evts)])
+        print ( job['name'])
 
         jobs.append(copy.deepcopy(job))
+        # print('\n')
+        # print(jobs)
 
     return jobs
 
@@ -229,6 +254,7 @@ def getReplayRuns(run_args):
             run = line.strip('\n')
             if len(run)>0:
                 runs.append(int(run))
+                
 
     # Arguments are either individual runs or ranges of runs. We check with a regex
     else:
@@ -249,44 +275,66 @@ def getReplayRuns(run_args):
             # Else, invalid argument so we warn and skip it 
             else:
                 warnings.warn('Invalid run argument: ' + arg)
-
+    #print(runs)
+            
     return runs
-
 #------------------------------------------------------------------------------
 def getCommandJobs(parsed_args, wf_name):
-    # TODO: Multiple jobs per workflow, specified by a file
+    
+    # TODO: Multiple jobs per workflow
     jobs = []
     job = {}
-    job['name'] = wf_name + '_job'
+    #job['name'] = wf_name + '_job'
+   # print(job['name'])
+   # print (wf_name)
 
     # command for job should be specified by user
     if parsed_args.command==None:
         raise RuntimeError('Must specify command for batch job')
     command = parsed_args.command[0]
-    job['command'] = command
 
-    # Add any necessary input files
-    if parsed_args.filelist==None:
-        warnings.warn('No file list specified! Assuming your shell script has any necessary jgets') 
+    # command for user jobs without run range
+    if parsed_args.run==None:
+    #     raise RuntimeError('Must specify run(s) to proceed')
+        
+        job['command'] = command
+        job['name'] = wf_name + '_job'
+        jobs.append(copy.deepcopy(job))
+
     else:
-        filelist = parsed_args.filelist[0]
-        f = open(filelist,'r') 
-        lines = f.readlines()
+        runs = getReplayRuns(parsed_args.run)
+        print (runs)
+        for run in runs:
+            job['command'] = " ".join([command,str(run)])
+            job['name'] = wf_name + '_job_' + str(run)
+            jobs.append(copy.deepcopy(job))
 
-        # We assume user has been smart enough to only specify valid files
-        # or, at worst, lines only containing a \n
-        job['input'] = []
-        for line in lines:
-            filename = line.strip('\n')
-            if len(filename)>0:
-                if not os.path.isfile(filename):
-                    warnings.warn('RAW DATA: ' + filename + ' does not exist')
-                inp={}
-                inp['local'] = os.path.basename(filename)
-                inp['remote'] = filename
-                job['input'].append(inp)
+    #print ( job['name'])
+    #job['command'] = command
+    # Add any necessary input files
+    # if parsed_args.filelist==None:
+    #     warnings.warn('No file list specified! Assuming your shell script has any necessary jgets') 
+    # else:
 
-    jobs.append(copy.deepcopy(job))
+    #     filelist = parsed_args.filelist[0]
+    #     print (filelist)
+    #     f = open(filelist,'r') 
+    #     lines = f.readlines()
+    #     print (lines)
+    #     # We assume user has been smart enough to only specify valid files
+    #     # or, at worst, lines only containing a \n
+    #     job['input'] = []
+    #     for line in lines:
+    #         filename = line.strip('\n')
+    #         if len(filename)>0:
+    #             if not os.path.isfile(filename):
+    #                 warnings.warn('RAW DATA: ' + filename + ' does not exist')
+    #             inp={}
+    #             inp['local'] = os.path.basename(filename)
+    #             inp['remote'] = filename
+    #             job['input'].append(inp)
+
+          
 
     return jobs
 

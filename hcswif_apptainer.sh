@@ -35,7 +35,7 @@ fi
 
 echo
 echo "---------------------------------------------------------------------------------------------"
-echo "NPS SINGLE REPLAY for ${runNum}. NEvent=${nEvent} using NPSlib container=${APPTAINER_IMAGE}"
+echo "REPLAY for ${runNum}. NEvent=${nEvent} using container=${APPTAINER_IMAGE}"
 echo "----------------------------------------------------------------------------------------------"
 echo
 

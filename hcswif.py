@@ -25,6 +25,7 @@ if not os.path.isdir(json_dir):
 raw_dir = '/mss/hallc/spring17/raw'
 if not os.path.isdir(raw_dir):
     warnings.warn('raw_dir: ' + raw_dir + ' does not exist')
+os.environ["RAW_DIR"] = raw_dir
 
 # Where is hcswif?
 hcswif_dir = os.path.dirname(os.path.realpath(__file__))
@@ -80,6 +81,8 @@ def parseArgs():
             help='max run time per job in seconds allowed before killing jobs')
     parser.add_argument('--shell', nargs=1, dest='shell',
             help='Currently a shell cannot be specified in SWIF2')
+    parser.add_argument('--apptainer', nargs=1, dest='apptainer',
+                    help='Specify path to apptainer image.')
 
     # Check if any args specified
     if len(sys.argv) < 2:
@@ -179,6 +182,12 @@ def getReplayJobs(parsed_args, wf_name):
         batch = os.path.join(hcswif_dir, 'hcswif.sh')
     elif re.search('csh', parsed_args.shell[0]):
         batch = os.path.join(hcswif_dir, 'hcswif.csh')
+    if parsed_args.apptainer:
+        batch = os.path.join(hcswif_dir, "hcswif_apptainer.sh")
+        os.environ["APPTAINER_IMAGE"] = str(parsed_args.apptainer[0])
+        if not os.path.isdir(os.environ["APPTAINER_IMAGE"]):
+            warnings.warn("APPTAINER image not found.")
+            sys.exit()
 
     # Create list of jobs for workflow
     jobs = []

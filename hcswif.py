@@ -25,7 +25,6 @@ if not os.path.isdir(json_dir):
 raw_dir = '/mss/hallc/spring17/raw'
 if not os.path.isdir(raw_dir):
     warnings.warn('raw_dir: ' + raw_dir + ' does not exist')
-os.environ["RAW_DIR"] = raw_dir
 
 # Where is hcswif?
 hcswif_dir = os.path.dirname(os.path.realpath(__file__))
@@ -183,11 +182,10 @@ def getReplayJobs(parsed_args, wf_name):
     elif re.search('csh', parsed_args.shell[0]):
         batch = os.path.join(hcswif_dir, 'hcswif.csh')
     if parsed_args.apptainer:
-        batch = os.path.join(hcswif_dir, "hcswif_apptainer.sh")
-        os.environ["APPTAINER_IMAGE"] = str(parsed_args.apptainer[0])
-        if not os.path.isdir(os.environ["APPTAINER_IMAGE"]):
+        if not os.path.isdir(str(parsed_args.apptainer[0])):
             warnings.warn("APPTAINER image not found.")
             sys.exit()
+        batch = os.path.join(hcswif_dir, "hcswif_apptainer.sh")
 
     # Create list of jobs for workflow
     jobs = []
@@ -227,7 +225,10 @@ def getReplayJobs(parsed_args, wf_name):
         job['inputs'][0]['remote'] = coda
 
         # command for job is `/hcswifdir/hcswif.sh REPLAY RUN NUMEVENTS`
-        job['command'] = [" ".join([batch, replay_script, str(run), str(evts)])]
+        if parsed_args.apptainer:
+             job['command'] = [" ".join([batch, replay_script, str(run), str(evts), str(parsed_args.apptainer[0]), str(raw_dir)])]
+        else:
+            job['command'] = [" ".join([batch, replay_script, str(run), str(evts)])]
 
         jobs.append(copy.deepcopy(job))
 

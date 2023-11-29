@@ -1,22 +1,23 @@
 #!/usr/bin/bash
 ARGC=$#
-if [[ $ARGC -ne 3 ]]; then
-    echo Usage: hcswif.sh SCRIPT RUN EVENTS
+if [[ $ARGC -ne 5 ]]; then
+    echo "Usage: hcswif.sh SCRIPT RUN EVENTS APPTAINER RAWDIR"
     exit 1
 fi;
+
 script=$1 # script to run
 run=$2 # RUN Number
 evt=$3 # Number of events in that run
-
-# Change these if this if not where hallc_replay 
+apptainer=$4
+rawdir=$5
 
 # Modify as you need
 #--------------------------------------------------
 HALLC_REPLAY_DIR="/home/$USER/hallc_replay"   # my replay directory
-DATA_DIR="${RAW_DIR}"
+DATA_DIR="${rawdir}"
 ROOT_FILE="/path/to/rootfile/directory"
 REPORT_OUTPUT="/path/to/REPORT_OTUPUT/directory"
-APPTAINER_IMAGE="${APPTAINER_IMAGE}"
+APPTAINER_IMAGE="${apptainer}"
 #--------------------------------------------------
 
 cd $HALLC_REPLAY_DIR
@@ -39,5 +40,5 @@ echo "REPLAY for ${runNum}. NEvent=${nEvent} using container=${APPTAINER_IMAGE}"
 echo "----------------------------------------------------------------------------------------------"
 echo
 
-runStr="apptainer exec --bind ${DATA_DIR} --bind ${ROOT_FILE} --bind ${REPORT_OUTPUT} --bind ${HALLC_REPLAY_DIR}  ${APPTAINER_IMAGE} bash -c \"hcana -q ${script}\(${runNum},${nEvent}\)\""
+runStr="apptainer exec --bind ${DATA_DIR} --bind ${APPTAINER_IMAGE}--bind ${ROOT_FILE} --bind ${REPORT_OUTPUT} --bind ${HALLC_REPLAY_DIR}  ${APPTAINER_IMAGE} bash -c \"hcana -q ${script}\(${runNum},${nEvent}\)\""
 eval ${runStr}
